@@ -1,0 +1,28 @@
+[tool.poetry]
+name = "fruitcraft"
+version = "0.0.1"
+description = "Full Python Wrapper for fruitcraft game API. By Mr.AW ."
+authors = ["Mr. AW <mrawfruitly@gmail.com>"]
+packages = [
+    { include = "fruitcraft" }
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT",
+    "Operating System :: OS Independent",
+]
+readme = "README.md"
+keywords = ["fruit", "fruitcraft", "fruit-craft", "game-library"]
+homepage = "https://github.com/MrAwFruitly/FruitcraftClient-py"
+
+[tool.poetry.dependencies]
+python = "^3.7"
+httpx = ">=0.20.0"
+pydantic = ">=1.8.2"
+
+[tool.poetry.dev-dependencies]
+pytest = ">=5.2"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
