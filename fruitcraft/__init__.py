@@ -1,0 +1,9 @@
+
+from .client import FruitCraftClient
+
+__version__ = '1.0.0'
+
+__all__ = [
+    FruitCraftClient,
+]
+
