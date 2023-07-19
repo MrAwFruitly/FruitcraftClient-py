@@ -8,8 +8,10 @@ packages = [
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT",
+    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
+    "Natural Language :: Persian",
+    "Natural Language :: English",
 ]
 readme = "README.md"
 keywords = ["fruit", "fruitcraft", "fruit-craft", "game-library"]
