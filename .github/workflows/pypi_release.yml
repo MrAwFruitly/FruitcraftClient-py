@@ -2,6 +2,8 @@ on:
   push:
     branches: [ Production ]
 
+permissions: write-all
+
 jobs:
   build-n-publish:
     name: Build and publish to PyPI
