@@ -441,23 +441,26 @@ class LanguagePatchRequest(DScaffold):
 class ErrorMessagesRequest(DScaffold):
     lang_id: Optional[str] = ""
 
+class CardsSelection():
+    cards: List[int] = None
+    hero_id: int = 0
+    
+    # NoHeal indicates we shouldn't be trying to heal any of
+    # the cards. This means we are 100% sure that they have already
+    # been healed previously.
+    no_heal: bool = False
+    
+    def __init__(self, cards: List[int], hero_id: int = 0, no_heal: bool = False) -> None:
+        self.cards = cards
+        self.hero_id = hero_id
+        self.no_heal = no_heal
 
 
 class QuestRequest(DScaffold):
     cards: IntArray = []
     hero_id: Optional[int] = 0
     check: Optional[str] = ""
-    cards_selection: Optional[Any] = None
-
-
-class CardsSelection():
-    cards: Optional[List[int]] = []
-    hero_id: Optional[int] = 0
-    
-    # NoHeal indicates we shouldn't be trying to heal any of
-    # the cards. This means we are 100% sure that they have already
-    # been healed previously.
-    no_heal: Optional[bool] = False
+    _cards_selection: Optional[CardsSelection] = None
 
 
 class TribeMemberInfo(DScaffold):

@@ -73,7 +73,12 @@ from .f_types import (
     TribeRankingsRequest,
     TribeRankingsResponse,
 )
-from .f_types.utils import xor_decrypt
+from .f_types.utils import (
+    xor_decrypt,
+    choose_strongest_atk_ids,
+    choose_strongest_atk_id,
+    hash_q_string,
+)
 from .f_types.errors import (
     UnknownError,
     PlayerLoadException,
@@ -115,8 +120,106 @@ class FruitCraftClient():
         
         self.mut = asyncio.Lock()
         self.http_client = httpx.AsyncClient()
+        self.passport = passport
         if not self.logger:
             self.logger = logging.getLogger(__name__)
+    
+    async def do_quest(self, cards: CardsSelection) -> QuestResponse:
+        return await self.do_quest_with_options(
+            QuestRequest(
+                cards=new_int_array(cards.cards),
+                _cards_selection=cards,
+                hero_id=cards.hero_id,
+            )
+        )
+    
+    async def do_quest_with_options(self, opt: QuestRequest) -> QuestResponse:
+        await self.mut.acquire()
+        
+        try:
+            self.login_options = opt
+            resp = await self.__do_quest_with_options(opt)
+            self.mut.release()
+            return resp
+        except Exception as e:
+            # just don't forget to release the lock in case an exception occurs
+            # because it's going to become a headache later on.
+            self.mut.release()
+            raise e
+    
+    async def __do_quest_with_options(self, opt: QuestRequest) -> QuestResponse:
+        if self.last_q_value:
+            opt.check = hash_q_string(self.last_q_value)
+        
+        api_response: APIResponse = await self.send_and_parse("battle/quest", opt, QuestResponse)
+        if isinstance(api_response.data, QuestResponse):
+            if api_response.data.q:
+                self.last_q_value = str(api_response.data.q)
+            
+            return api_response.data
+    
+    def get_strongest_cards(self) -> CardsSelection:
+        if not self.last_loaded_player:
+            raise Exception("No player loaded")
+        
+        cards = choose_strongest_atk_ids(4, *self.last_loaded_player.cards)
+        
+        if self.last_loaded_player.hero_id_set:
+            hero_id = choose_strongest_atk_id(*self.last_loaded_player.hero_id_set)
+            if hero_id:
+                cards.append(hero_id)
+        
+        return CardsSelection(
+            cards=cards,
+            hero_id=hero_id,
+        )
+    
+    
+    def get_level1_card(self) -> CardsSelection:
+        final_cards: AttackCardInfo = None
+        final_since: int = 0
+        
+        for current in self.last_loaded_player.cards:
+            if current.power > 40:
+                continue
+            
+            my_since = time.time() - current.internal_last_time_used
+            if my_since < 16:
+                continue
+            
+            if not final_cards:
+                final_cards = current
+                continue
+            
+            if my_since > final_since:
+                final_cards = current
+                final_since = my_since
+        
+        if not final_cards:
+            return None
+        
+        return CardsSelection(
+            cards=[final_cards.id],
+            no_heal=True,
+        )
+        
+    
+    def get_weakest_card(self) -> CardsSelection:
+        if not self.last_loaded_player:
+            raise Exception("No player loaded")
+        
+        level1_selection = self.get_level1_card()
+        if level1_selection:
+            return level1_selection
+        
+        target_card = self.last_loaded_player.cards[0]
+        for current_card in self.last_loaded_player.cards:
+            if current_card.power < target_card.power:
+                target_card = current_card
+                
+        return CardsSelection(
+            cards=[target_card.id],
+        )
     
     async def load_player(
         self, 
@@ -185,7 +288,7 @@ class FruitCraftClient():
             raise PlayerLoadException("Unknown error occurred", api_response.data)
         
         self.login_options = opt
-        self.last_q_value = load_response.q
+        self.last_q_value = str(load_response.q)
         self.last_loaded_player = load_response
         return load_response
             
@@ -260,10 +363,9 @@ class FruitCraftClient():
         if the_pass != "" and the_pass != "none" and the_pass != "null":
             headers['Cookie'] = f"\u0046\u0052\u0055\u0049\u0054\u0050\u0041\u0053\u0053\u0050\u004f\u0052\u0054={the_pass};"
 
-        async with self.http_client:
-            response = await self.http_client.post(f"{self._default_url}/{path}", data=data_value, headers=headers)
-            response.raise_for_status()
-            return response.content
+        response = await self.http_client.post(f"{self._default_url}/{path}", data=data_value, headers=headers)
+        response.raise_for_status()
+        return response.content
         
 
     
