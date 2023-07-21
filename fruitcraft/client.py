@@ -124,6 +124,15 @@ class FruitCraftClient():
         if not self.logger:
             self.logger = logging.getLogger(__name__)
     
+    
+    async def get_device_constants(self) -> DeviceConstants:
+        return await self.get_device_constants_with_options(DeviceConstantsRequest())
+    
+    async def get_device_constants_with_options(self, opt: DeviceConstantsRequest) -> DeviceConstants:
+        opt.set_default_values()
+        api_response: APIResponse = await self.send_and_parse("device/constants", opt, DeviceConstants)
+        return api_response.data
+    
     async def do_quest(self, cards: CardsSelection) -> QuestResponse:
         return await self.do_quest_with_options(
             QuestRequest(

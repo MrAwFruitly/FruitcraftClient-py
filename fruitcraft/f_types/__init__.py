@@ -356,18 +356,10 @@ class PlayerLoadResponse(DScaffold):
     update_message: Optional[str] = ""
     
 
-PlayerMedals = Dict[str, int]
-ErrorMessages = Dict[str, str]
-DeviceConstants = Dict[str, Any]
-FruitExportContainer = Dict[str, FruitCardInfo]
-
-
-class DeviceConstantsRequest(DScaffold):
-    game_version: Optional[str] = ""
-    os_version: Optional[str] = ""
-    phone_model: Optional[str] = ""
-    constant_version: Optional[str] = ""
-    store_type: Optional[str] = ""
+PlayerMedals: Dict[str, int] = dict
+ErrorMessages: Dict[str, str] = dict
+DeviceConstants: Dict[str, Any] = dict
+FruitExportContainer: Dict[str, FruitCardInfo] = dict
 
 class LoadRequestDefaults:
 	DEFAULT_GAME_VERSION      = "1.9.10691"
@@ -381,6 +373,29 @@ class LoadRequestDefaults:
 	DEFAULT_CONSTANTS_VERSION = "142"
 	DEFAULT_STORE_TYPE        = "myket"
 	DEFAULT_CLIENT_VALUE      = "iOS"
+
+class DeviceConstantsRequest(DScaffold):
+    game_version: Optional[str] = ""
+    os_version: Optional[str] = ""
+    model: Optional[str] = ""
+    constant_version: Optional[str] = ""
+    store_type: Optional[str] = ""
+    
+    def set_default_values(self):
+        if not self.game_version:
+            self.game_version = LoadRequestDefaults.DEFAULT_GAME_VERSION
+        
+        if not self.os_version:
+            self.os_version = LoadRequestDefaults.DEFAULT_OS_VERSION
+        
+        if not self.model:
+            self.model = LoadRequestDefaults.DEFAULT_PHONE_MODEL
+        
+        if not self.constant_version:
+            self.constant_version = LoadRequestDefaults.DEFAULT_CONSTANTS_VERSION
+        
+        if not self.store_type:
+            self.store_type = LoadRequestDefaults.DEFAULT_STORE_TYPE
 
 
 class PlayerLoadRequest(DScaffold):
