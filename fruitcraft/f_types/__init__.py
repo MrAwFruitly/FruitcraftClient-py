@@ -3,6 +3,7 @@ from .utils import xor_encrypt
 from typing import (
     Any, List, Dict, Optional
 )
+import time
 
 class IntArray(str):
     pass
@@ -80,6 +81,8 @@ class AttackCardInfo(DScaffold):
     player_id: Optional[int] = 0
     internal_last_time_used: Optional[int] = 0
 
+    def set_as_used(self):
+        self.internal_last_time_used = time.time()
 
 
 class QuestResponse(DScaffold):

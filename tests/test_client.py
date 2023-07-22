@@ -49,15 +49,12 @@ async def test_fruit_quest02():
     load_response = await client.load_player(test_token)
     print(load_response.name)
     
-    
-    strongest_cards = client.get_weakest_card()
-    print(strongest_cards)
-    
     while True:
+        weakest_card = client.get_weakest_card()
         try:
-            quest_result = await client.do_quest(strongest_cards)
+            quest_result = await client.do_quest(weakest_card)
             print(f"Added: {quest_result.xp_added} | Total: {quest_result.xp}")
-            
+            await asyncio.sleep(1.5)
         except Exception as ex:
             print(f"failed due to {ex}")
 

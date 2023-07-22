@@ -168,6 +168,8 @@ class FruitCraftClient():
         if self.last_q_value:
             opt.check = hash_q_string(self.last_q_value)
         
+        opt._cards_selection
+        
         api_response: APIResponse = await self.send_and_parse("battle/quest", opt, QuestResponse)
         if isinstance(api_response.data, QuestResponse):
             if api_response.data.q:
@@ -193,7 +195,7 @@ class FruitCraftClient():
     
     
     def get_level1_card(self) -> CardsSelection:
-        final_cards: AttackCardInfo = None
+        final_card: AttackCardInfo = None
         final_since: int = 0
         
         for current in self.last_loaded_player.cards:
@@ -204,19 +206,20 @@ class FruitCraftClient():
             if my_since < 16:
                 continue
             
-            if not final_cards:
-                final_cards = current
+            if not final_card:
+                final_card = current
                 continue
             
             if my_since > final_since:
-                final_cards = current
+                final_card = current
                 final_since = my_since
         
-        if not final_cards:
+        if not final_card:
             return None
         
+        final_card.set_as_used()
         return CardsSelection(
-            cards=[final_cards.id],
+            cards=[final_card.id],
             no_heal=True,
         )
         
