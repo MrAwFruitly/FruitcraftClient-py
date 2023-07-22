@@ -124,6 +124,14 @@ class FruitCraftClient():
         if not self.logger:
             self.logger = logging.getLogger(__name__)
     
+    async def get_error_messages(self) -> ErrorMessages:
+        return await self.get_device_constants_with_options(ErrorMessagesRequest())
+    
+    async def get_error_messages_with_options(self, opt: ErrorMessagesRequest) -> ErrorMessages:
+        opt.set_default_values()
+        
+        api_response: APIResponse = await self.send_and_parse("device/constants", opt, ErrorMessages)
+        return api_response.data
     
     async def get_device_constants(self) -> DeviceConstants:
         return await self.get_device_constants_with_options(DeviceConstantsRequest())

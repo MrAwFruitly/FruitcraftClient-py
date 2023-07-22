@@ -9,6 +9,19 @@ class IntArray(str):
 
 LeagueWinnerRanges = Dict[str, int]
 
+class LoadRequestDefaults:
+	DEFAULT_GAME_VERSION      = "1.9.10691"
+	DEFAULT_U_DID             = "a341224a6fa458c8"
+	DEFAULT_OS_TYPE           = 2
+	DEFAULT_OS_VERSION        = "7.1.2"
+	DEFAULT_PHONE_MODEL       = "google pixel 2"
+	DEFAULT_METRIX_UID        = "-"
+	DEFAULT_APPS_FLYER_UID     = "1686402669312-333768616178664406"
+	DEFAULT_DEVICE_NAME       = "unknown"
+	DEFAULT_CONSTANTS_VERSION = "142"
+	DEFAULT_STORE_TYPE        = "myket"
+	DEFAULT_CLIENT_VALUE      = "iOS"
+	DEFAULT_LANG_VALUE        = "fa-IR"
 
 def new_int_array(values: List[Any]) -> IntArray:
     output = "["
@@ -361,18 +374,7 @@ ErrorMessages: Dict[str, str] = dict
 DeviceConstants: Dict[str, Any] = dict
 FruitExportContainer: Dict[str, FruitCardInfo] = dict
 
-class LoadRequestDefaults:
-	DEFAULT_GAME_VERSION      = "1.9.10691"
-	DEFAULT_U_DID             = "a341224a6fa458c8"
-	DEFAULT_OS_TYPE           = 2
-	DEFAULT_OS_VERSION        = "7.1.2"
-	DEFAULT_PHONE_MODEL       = "google pixel 2"
-	DEFAULT_METRIX_UID        = "-"
-	DEFAULT_APPS_FLYER_UID     = "1686402669312-333768616178664406"
-	DEFAULT_DEVICE_NAME       = "unknown"
-	DEFAULT_CONSTANTS_VERSION = "142"
-	DEFAULT_STORE_TYPE        = "myket"
-	DEFAULT_CLIENT_VALUE      = "iOS"
+
 
 class DeviceConstantsRequest(DScaffold):
     game_version: Optional[str] = ""
@@ -455,6 +457,10 @@ class LanguagePatchRequest(DScaffold):
 
 class ErrorMessagesRequest(DScaffold):
     lang_id: Optional[str] = ""
+    
+    def set_default_values(self):
+        if not self.lang_id:
+            self.lang_id = LoadRequestDefaults.DEFAULT_LANG_VALUE
 
 class CardsSelection():
     cards: List[int] = None

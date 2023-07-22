@@ -1,5 +1,6 @@
 import pytest
 from fruitcraft import FruitCraftClient
+import asyncio
 
 test_token: str = ''
 
@@ -12,7 +13,7 @@ def read_token(file_names: list) -> str:
             return
         except: pass
 
-read_token(['token.txt', '../token.txt', 'tests/token.txt'])
+read_token(['token.token', '../token.token', 'tests/token.token'])
 
 @pytest.mark.asyncio
 async def test_fruit_client01():
@@ -40,6 +41,25 @@ async def test_fruit_quest01():
     
     quest_result = await client.do_quest(strongest_cards)
     print(quest_result.xp_added)
+
+    
+@pytest.mark.asyncio
+async def test_fruit_quest02():
+    client = FruitCraftClient()
+    load_response = await client.load_player(test_token)
+    print(load_response.name)
+    
+    
+    strongest_cards = client.get_weakest_card()
+    print(strongest_cards)
+    
+    while True:
+        try:
+            quest_result = await client.do_quest(strongest_cards)
+            print(f"Added: {quest_result.xp_added} | Total: {quest_result.xp}")
+            
+        except Exception as ex:
+            print(f"failed due to {ex}")
 
 @pytest.mark.asyncio
 async def test_fruit_device_const():
