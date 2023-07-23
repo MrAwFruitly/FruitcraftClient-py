@@ -452,11 +452,26 @@ class LanguagePathResponse(DScaffold):
 class PlayerComebackRequest(DScaffold):
     client: Optional[str] = ""
     
+    def set_default_values(self):
+        if not self.client:
+            self.client = LoadRequestDefaults.DEFAULT_CLIENT_VALUE
+    
+class PlayerComebackResponse(DScaffold):
+    dummy: Optional[str] = ""
+    
 class FruitJsonExportRequest(DScaffold):
     client: Optional[str] = ""
+    
+    def set_default_values(self):
+        if not self.client:
+            self.client = LoadRequestDefaults.DEFAULT_CLIENT_VALUE
 
 class LanguagePatchRequest(DScaffold):
     client: Optional[str] = ""
+    
+    def set_default_values(self):
+        if not self.client:
+            self.client = LoadRequestDefaults.DEFAULT_CLIENT_VALUE
 
 class ErrorMessagesRequest(DScaffold):
     lang_id: Optional[str] = ""
@@ -529,8 +544,8 @@ class BattleResponse(DScaffold):
     league_bonus: Optional[int] = 0
     levelup_gold_added: Optional[int] = 0
     level: Optional[int] = 0
-    exp: Optional[int] = 0
-    exp_added: Optional[int] = 0
+    xp: Optional[int] = 0
+    xp_added: Optional[int] = 0
     rank: Optional[int] = 0
     tribe_rank: Optional[int] = 0
     attack_cards: Optional[List[AttackCardInfo]] = []
@@ -559,8 +574,8 @@ class BattleResponse(DScaffold):
     gift_nectar: Optional[int] = 0
     available_combo_id_set: Optional[Any] = None
     purchase_deposits_to_bank: Optional[Any] = None
-    attacker_hero_benefits_info: Optional[List[Any]] = []
-    defender_hero_benefits_info: Optional[List[Any]] = []
+    attacker_hero_benefits_info: Optional[Any] = None
+    defender_hero_benefits_info: Optional[Any] = None
     raw_response: Optional[bytes] = b""
 
 

@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 import string
 import random
 import time
@@ -53,6 +53,7 @@ from .f_types import (
     OpponentInfo,
     PlayerLeagueRankingInfo,
     PlayerComebackRequest,
+    PlayerComebackResponse,
     PlayerLoadRequest,
     PlayerLoadResponse,
     PlayerMedals,
@@ -82,6 +83,7 @@ from .f_types.utils import (
 from .f_types.errors import (
     UnknownError,
     PlayerLoadException,
+    FruitServerException,
 )
 import inspect
 import json
@@ -98,6 +100,7 @@ class FruitCraftClient():
     last_loaded_player: PlayerLoadResponse = None
     last_battle_request: BattleRequest = None
     login_options: PlayerLoadRequest = None
+    cached_errors: ErrorMessages = None
     
     log_player_id_before_atk: bool = False
     log_before_resp_parsing: bool = False
@@ -124,13 +127,137 @@ class FruitCraftClient():
         if not self.logger:
             self.logger = logging.getLogger(__name__)
     
+    async def do_live_battle(self, opponent_id: int) -> LiveBattleResponse:
+        return await self.do_live_battle_with_options(LiveBattleRequest(
+            opponent_id=opponent_id,
+        ))
+    
+    async def do_live_battle_with_options(self, opt: LiveBattleRequest) -> LiveBattleResponse:
+        if not isinstance(opt.opponent_id, int) and opt.opponent_id != None:
+            tmp_id = getattr(opt.opponent_id, "id", None)
+            if isinstance(tmp_id, int):
+                opt.opponent_id = tmp_id
+        
+        api_response: APIResponse = await self.send_and_parse("live-battle/livebattle", opt, LiveBattleResponse)
+        return api_response.data
+    
+    def set_cool_off_sleep_amount(self, sleep_amount: int) -> None:
+        self.cool_off_sleep_time = sleep_amount
+    
+    async def heal_all(self, cards: CardsSelection) -> List[CoolOffResponse]:
+        return await self.heal_all_with_ids(*cards.cards)
+    
+    async def heal_all_with_ids(self, *card_ids) -> List[CoolOffResponse]:
+        results = []
+        for current_id in card_ids:
+            try:
+                results.append(await self.cool_off(current_id))
+            except Exception as ex:
+                self.logger.warning(f"failed to heal card {current_id}: {ex}")
+            
+            if self.cool_off_sleep_time:
+                await asyncio.sleep(self.cool_off_sleep_time)
+        
+        return results
+    
+    async def cool_off(self, card_id: int) -> CoolOffResponse:
+        return await self.cool_off_with_options(
+            CoolOffRequest(
+                card_id=card_id,
+            )
+        )
+    
+    async def cool_off_with_options(self, opt: CoolOffRequest) -> CoolOffResponse:
+        api_response: APIResponse = await self.send_and_parse("cards/cooloff", opt, CoolOffResponse)
+        return api_response.data
+    
+    async def do_battle(self, opponent_id: int, cards: CardsSelection) -> BattleResponse:
+        return await self.do_battle_with_options(
+            BattleRequest(
+                cards=new_int_array(cards.cards),
+                _cards_selection=cards,
+                hero_id=cards.hero_id,
+                opponent_id=opponent_id,
+            )
+        )
+    
+    async def do_battle_with_options(self, opt: BattleRequest) -> BattleResponse:
+        await self.mut.acquire()
+        
+        try:
+            resp = await self.__do_battle_with_options(opt)
+            self.mut.release()
+            return resp
+        except Exception as e:
+            # just don't forget to release the lock in case an exception occurs
+            # because it's going to become a headache later on.
+            self.mut.release()
+            raise e
+    
+    async def __do_battle_with_options(self, opt: BattleRequest) -> BattleResponse:
+        if self.last_q_value:
+            opt.check = hash_q_string(self.last_q_value)
+        
+        opt._cards_selection
+        
+        api_response: APIResponse = await self.send_and_parse("battle/battle", opt, BattleResponse)
+        if isinstance(api_response.data, BattleResponse):
+            if api_response.data.q:
+                self.last_q_value = str(api_response.data.q)
+            
+            return api_response.data
+    
+    async def get_opponents_from_others(self, other_pass: str) -> GetOpponentsResponse:
+        return await self.get_opponents_with_options(GetOpponentsRequest(_other_pass=other_pass))
+    
+    async def get_opponents(self) -> GetOpponentsResponse:
+        return await self.get_opponents_with_options(GetOpponentsRequest())
+    
+    async def get_opponents_with_options(self, opt: GetOpponentsRequest) -> GetOpponentsResponse:
+        api_response: APIResponse = await self.send_and_parse("battle/getopponents", opt, GetOpponentsResponse)
+        return api_response.data
+    
+    async def get_tribe_members(self) -> TribeMembersResponse:
+        return await self.get_tribe_members_with_options(TribeMembersRequest())
+    
+    async def get_tribe_members_with_options(self, opt: TribeMembersRequest) -> TribeMembersResponse:
+        api_response: APIResponse = await self.send_and_parse("tribe/members", opt, TribeMembersResponse)
+        return api_response.data
+    
+    async def player_comeback(self) -> bool:
+        return await self.player_comeback_with_options(PlayerComebackRequest())
+    
+    async def player_comeback_with_options(self, opt: PlayerComebackRequest) -> bool:
+        opt.set_default_values()
+        
+        api_response: APIResponse = await self.send_and_parse("player/comeback", opt, PlayerComebackResponse)
+        return api_response.status
+    
+    async def fruits_json_export(self) -> LanguagePathResponse:
+        return await self.fruits_json_export_with_options(FruitJsonExportRequest())
+    
+    async def fruits_json_export_with_options(self, opt: FruitJsonExportRequest) -> FruitExportContainer:
+        opt.set_default_values()
+        
+        api_response: APIResponse = await self.send_and_parse("cards/fruitsjsonexport", opt, FruitExportContainer)
+        return api_response.data
+    
+    async def get_language_patch(self) -> LanguagePathResponse:
+        return await self.get_language_patch_with_options(LanguagePatchRequest())
+    
+    async def get_language_patch_with_options(self, opt: LanguagePatchRequest) -> LanguagePathResponse:
+        opt.set_default_values()
+        
+        api_response: APIResponse = await self.send_and_parse("player/languagepatch", opt, LanguagePathResponse)
+        return api_response.data
+    
     async def get_error_messages(self) -> ErrorMessages:
-        return await self.get_device_constants_with_options(ErrorMessagesRequest())
+        return await self.get_error_messages_with_options(ErrorMessagesRequest())
     
     async def get_error_messages_with_options(self, opt: ErrorMessagesRequest) -> ErrorMessages:
         opt.set_default_values()
         
-        api_response: APIResponse = await self.send_and_parse("device/constants", opt, ErrorMessages)
+        api_response: APIResponse = await self.send_and_parse("error/messages", opt, ErrorMessages)
         return api_response.data
     
     async def get_device_constants(self) -> DeviceConstants:
@@ -150,11 +277,23 @@ class FruitCraftClient():
             )
         )
     
+    async def do_quest_with_options_str(self, value: str) -> QuestResponse:
+        j_value = json.loads(value)
+        the_req = QuestRequest(**j_value)
+        return await self.do_quest_with_options(the_req)
+    
+    async def do_quest_with_hash(self, the_hash: str, *cards) -> QuestResponse:
+        return await self.do_quest_with_options(
+            QuestRequest(
+                cards=new_int_array(list(cards)),
+                check=the_hash,
+            )
+        )
+    
     async def do_quest_with_options(self, opt: QuestRequest) -> QuestResponse:
         await self.mut.acquire()
         
         try:
-            self.login_options = opt
             resp = await self.__do_quest_with_options(opt)
             self.mut.release()
             return resp
@@ -341,6 +480,17 @@ class FruitCraftClient():
     def set_as_player_loaded_value(self, loaded_value: PlayerLoadResponse):
         self.last_loaded_player = loaded_value
 
+    async def get_error_by_code(self, req_path: str, error_code: int, response: str = None) -> Exception:
+        if not self.cached_errors:
+            self.cached_errors = await self.get_error_messages()
+        
+        return FruitServerException(
+            req_path=req_path, 
+            error_code=error_code,
+            message=self.cached_errors[str(error_code)],
+            response=response
+        )
+
     async def send_and_parse(self, req_path: str, req_data: DScaffold, return_type: type = None) -> APIResponse:
         serialized_data = req_data.get_serialized(self._serialize_key)
         
@@ -348,7 +498,11 @@ class FruitCraftClient():
         if not return_type and not parser_method:
             return None
 
-        respond_bytes = await self.invoke_request(path=req_path, data=serialized_data, the_pass=self.passport)
+        target_pass = getattr(req_data, "_other_pass", None)
+        if not target_pass:
+            target_pass = self.passport
+
+        respond_bytes = await self.invoke_request(path=req_path, data=serialized_data, the_pass=target_pass)
         if parser_method and inspect.ismethod(parser_method):
             return parser_method(respond_bytes)
         
@@ -358,6 +512,15 @@ class FruitCraftClient():
         respond_decrypted = xor_decrypt(respond_bytes)
         j_value = json.loads(respond_decrypted)
         if not j_value or not j_value['status']:
+            if j_value['data']['code'] != 0:
+                the_err = await self.get_error_by_code(
+                    req_path=req_data,
+                    error_code=j_value['data']['code'],
+                    response=respond_bytes,
+                )
+                if isinstance(the_err, Exception):
+                    raise the_err
+        
             raise UnknownError(f"Unknown error occurred for {req_path}", respond_bytes)
         
         api_response: APIResponse = APIResponse(j_value)

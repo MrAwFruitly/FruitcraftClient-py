@@ -66,3 +66,14 @@ async def test_fruit_device_const():
     
     constants: dict = await client.get_device_constants()
     print(constants.get('LIVE_BATTLE_HELP_TIMEOUT', 0))
+
+@pytest.mark.asyncio
+async def test_fruit_do_battle():
+    client = FruitCraftClient()
+    load_response = await client.load_player(test_token)
+    print(load_response.name)
+    
+    strongest_cards = client.get_strongest_cards()
+    opponents = await client.get_opponents()
+    battle_result = await client.do_battle(opponents.players[0].id, strongest_cards)
+    print(battle_result.xp_added)
