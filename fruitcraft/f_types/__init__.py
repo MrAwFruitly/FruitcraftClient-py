@@ -4,6 +4,7 @@ from typing import (
     Any, List, Dict, Optional
 )
 import time
+import random
 
 class IntArray(str):
     pass
@@ -12,7 +13,6 @@ LeagueWinnerRanges = Dict[str, int]
 
 class LoadRequestDefaults:
 	DEFAULT_GAME_VERSION      = "1.9.10691"
-	DEFAULT_U_DID             = "a341224a6fa458c8"
 	DEFAULT_OS_TYPE           = 2
 	DEFAULT_OS_VERSION        = "7.1.2"
 	DEFAULT_PHONE_MODEL       = "google pixel 2"
@@ -420,7 +420,7 @@ class PlayerLoadRequest(DScaffold):
             self.game_version = LoadRequestDefaults.DEFAULT_GAME_VERSION
         
         if not self.udid:
-            self.udid = LoadRequestDefaults.DEFAULT_U_DID
+            self.udid = ''.join(random.choices("abcdef0123456789", k=16))
         
         if not self.os_type:
             self.os_type = LoadRequestDefaults.DEFAULT_OS_TYPE
@@ -506,7 +506,7 @@ class TribeMemberInfo(DScaffold):
     id: Optional[int] = 0
     name: Optional[str] = ""
     rank: Optional[int] = 0
-    exp: Optional[int] = 0
+    xp: Optional[int] = 0
     gold: Optional[int] = 0
     tribe_permission: Optional[int] = 0
     level: Optional[int] = 0
@@ -522,7 +522,7 @@ class OpponentInfo(DScaffold):
     id: Optional[int] = 0
     name: Optional[str] = ""
     rank: Optional[int] = 0
-    exp: Optional[int] = 0
+    xp: Optional[int] = 0
     gold: Optional[int] = 0
     tribe_permission: Optional[int] = 0
     level: Optional[int] = 0
@@ -654,16 +654,23 @@ class TribeRankingsResponse(DScaffold):
 
 class TribeRankingsRequest(DScaffold):
     client: Optional[str] = ""
+    
+    def set_default_values(self):
+        if not self.client:
+            self.client = LoadRequestDefaults.DEFAULT_CLIENT_VALUE
 
 
 class LiveBattleHelpRequest(DScaffold):
     battle_id: Optional[int] = 0
 
+class LiveBattleHelpResponse(DScaffold):
+    dummy: Optional[str] = ""
+
 class PlayerRankingInfo(DScaffold):
     id: Optional[int] = 0
     name: Optional[str] = ""
     rank: Optional[int] = 0
-    exp: Optional[int] = 0
+    xp: Optional[int] = 0
     level: Optional[int] = 0
     tribe_id: Optional[int] = 0
     tribe_name: Optional[str] = ""
@@ -678,6 +685,10 @@ class GlobalRankingsResponse(DScaffold):
 
 class GlobalRankingsRequest(DScaffold):
     client: Optional[str] = ""
+    
+    def set_default_values(self):
+        if not self.client:
+            self.client = LoadRequestDefaults.DEFAULT_CLIENT_VALUE
 
 
 class PlayerLeagueRankingInfo(DScaffold):
@@ -752,3 +763,7 @@ class GetPlayerInfoResponse(DScaffold):
 
 class LeagueRankingsRequest(DScaffold):
     client: Optional[str] = ""
+    
+    def set_default_values(self):
+        if not self.client:
+            self.client = LoadRequestDefaults.DEFAULT_CLIENT_VALUE

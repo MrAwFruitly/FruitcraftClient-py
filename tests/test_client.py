@@ -79,3 +79,24 @@ async def test_fruit_do_battle():
     opponents = await client.get_opponents()
     battle_result = await client.do_battle(opponents.players[0].id, strongest_cards)
     print(battle_result.xp_added)
+
+@pytest.mark.asyncio
+async def test_fruit_do_battle():
+    client = FruitCraftClient()
+    load_response = await client.load_player(test_token)
+    print(load_response.name)
+    
+    player_info = await client.get_player_info(200)
+    print(player_info.name)
+    
+    global_rankings = await client.get_global_rankings()
+    print(global_rankings.top_players[0].name)
+
+@pytest.mark.asyncio
+async def test_fruit_do_potion01():
+    client = FruitCraftClient()
+    load_response = await client.load_player(test_token)
+    print(load_response.name)
+    
+    fill_result = await client.fill_potions(50 - load_response.potion_number)
+    print(fill_result.added_potion)

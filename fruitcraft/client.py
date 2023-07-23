@@ -4,21 +4,16 @@ import random
 import time
 import httpx
 import asyncio
-import pydantic
 from .f_types import (
     DScaffold,
     APIResponse,
-    Achievements,
     AttackCardInfo,
     BattleRequest,
     BattleResponse,
-    Bundles,
     CardsSelection,
     CardInfo,
-    Coaching,
     CoolOffRequest,
     CoolOffResponse,
-    DailyReward,
     DeviceConstants,
     DeviceConstantsRequest,
     ErrorMessages,
@@ -34,41 +29,26 @@ from .f_types import (
     GetPlayerInfoResponse,
     GlobalRankingsRequest,
     GlobalRankingsResponse,
-    GoldPackInfo,
-    HeroIDSet,
-    HeroItems,
-    IntArray,
-    HeroItemInfo,
     LanguagePatchRequest,
     LanguagePathResponse,
     LeagueRankingsRequest,
     LeagueRankingsResponse,
     LeagueWinnerRanges,
     LiveBattleHelpRequest,
+    LiveBattleHelpResponse,
     LiveBattleRequest,
     LiveBattleResponse,
-    ModulesVersion,
     new_int_array,
-    Onsale,
-    OpponentInfo,
-    PlayerLeagueRankingInfo,
     PlayerComebackRequest,
     PlayerComebackResponse,
     PlayerLoadRequest,
     PlayerLoadResponse,
-    PlayerMedals,
-    PlayerRankingInfo,
     PotionizeRequest,
     PotionizeResponse,
-    Price,
     QuestRequest,
     QuestResponse,
-    Scaffold,
     SetCardForLiveBattleRequest,
     SetCardForLiveBattleResponse,
-    Tribe,
-    TribeInfo,
-    TribeMemberInfo,
     TribeMembersRequest,
     TribeMembersResponse,
     TribeRankingsRequest,
@@ -127,6 +107,83 @@ class FruitCraftClient():
         if not self.logger:
             self.logger = logging.getLogger(__name__)
     
+    async def get_player_info(self, player_id: int) -> GetPlayerInfoResponse:
+        return await self.get_player_info_with_options(GetPlayerInfoRequest(player_id=player_id))
+    
+    async def get_player_info_with_options(self, opt: GetPlayerInfoRequest) -> GetPlayerInfoResponse:
+        api_response: APIResponse = await self.send_and_parse(
+            "player/getplayerinfo", opt, GetPlayerInfoResponse)
+        return api_response.data
+    
+    async def potionize(self, hero_id: int, amount: int) -> PotionizeResponse:
+        return await self.potionize_with_options(PotionizeRequest(potion=amount, hero_id=hero_id))
+    
+    async def potionize_with_options(self, opt: PotionizeRequest) -> PotionizeResponse:
+        api_response: APIResponse = await self.send_and_parse(
+            "cards/potionize", opt, PotionizeResponse)
+        return api_response.data
+    
+    async def fill_potions(self, amount: int = 50) -> FillPotionResponse:
+        return await self.fill_potions_with_options(FillPotionRequest(amount=amount))
+    
+    async def fill_potions_with_options(self, opt: FillPotionRequest) -> FillPotionResponse:
+        api_response: APIResponse = await self.send_and_parse(
+            "player/fillpotion", opt, FillPotionResponse)
+        
+        fill_result = api_response.data
+        if not isinstance(fill_result, FillPotionResponse):
+            return None
+        
+        if self.last_loaded_player:
+            self.last_loaded_player.potion_number = fill_result.potion_number
+        
+        return api_response.data
+    
+    async def get_league_rankings(self) -> LeagueRankingsResponse:
+        return await self.get_league_rankings_with_options(LeagueRankingsRequest())
+    
+    async def get_league_rankings_with_options(self, opt: LeagueRankingsRequest) -> LeagueRankingsResponse:
+        opt.set_default_values()
+        
+        api_response: APIResponse = await self.send_and_parse(
+            "ranking/league", opt, LeagueRankingsResponse)
+        return api_response.data
+    
+    async def get_global_rankings(self) -> GlobalRankingsResponse:
+        return await self.get_global_rankings_with_options(GlobalRankingsRequest())
+    
+    async def get_global_rankings_with_options(self, opt: GlobalRankingsRequest) -> GlobalRankingsResponse:
+        opt.set_default_values()
+        
+        api_response: APIResponse = await self.send_and_parse(
+            "ranking/global", opt, GlobalRankingsResponse)
+        return api_response.data
+    
+    async def get_tribe_rankings(self) -> TribeRankingsResponse:
+        return await self.get_tribe_rankings_with_options(TribeRankingsRequest())
+    
+    async def get_tribe_rankings_with_options(self, opt: TribeRankingsRequest) -> TribeRankingsResponse:
+        opt.set_default_values()
+        
+        api_response: APIResponse = await self.send_and_parse(
+            "ranking/tribe", opt, TribeRankingsResponse)
+        return api_response.data
+    
+    async def live_battle_help(self, battle_id: int) -> bool:
+        return await self.live_battle_help_with_options(LiveBattleHelpRequest(
+            battle_id=battle_id,
+        ))
+    
+    async def live_battle_help_with_options(self, opt: LiveBattleHelpRequest) -> bool:
+        api_response: APIResponse = await self.send_and_parse(
+            "live-battle/help", opt, LiveBattleHelpResponse)
+        return api_response.status
+    
+    async def set_card_for_live_battle(self, opt: SetCardForLiveBattleRequest) -> SetCardForLiveBattleResponse:
+        api_response: APIResponse = await self.send_and_parse(
+            "live-battle/setcardforlivebattle", opt, SetCardForLiveBattleResponse)
+        return api_response.data
+    
     async def do_live_battle(self, opponent_id: int) -> LiveBattleResponse:
         return await self.do_live_battle_with_options(LiveBattleRequest(
             opponent_id=opponent_id,
@@ -138,7 +195,8 @@ class FruitCraftClient():
             if isinstance(tmp_id, int):
                 opt.opponent_id = tmp_id
         
-        api_response: APIResponse = await self.send_and_parse("live-battle/livebattle", opt, LiveBattleResponse)
+        api_response: APIResponse = await self.send_and_parse(
+            "live-battle/livebattle", opt, LiveBattleResponse)
         return api_response.data
     
     def set_cool_off_sleep_amount(self, sleep_amount: int) -> None:
@@ -170,6 +228,11 @@ class FruitCraftClient():
     async def cool_off_with_options(self, opt: CoolOffRequest) -> CoolOffResponse:
         api_response: APIResponse = await self.send_and_parse("cards/cooloff", opt, CoolOffResponse)
         return api_response.data
+    
+    async def do_battle_and_heal(self, opponent_id: int, cards: CardsSelection) -> BattleResponse:
+        battle_result = await self.do_battle(opponent_id=opponent_id, cards=cards)
+        await self.heal_all(cards=cards)
+        return battle_result
     
     async def do_battle(self, opponent_id: int, cards: CardsSelection) -> BattleResponse:
         return await self.do_battle_with_options(
