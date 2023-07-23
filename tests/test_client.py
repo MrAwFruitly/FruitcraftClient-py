@@ -74,6 +74,8 @@ async def test_fruit_do_battle():
     print(load_response.name)
     
     strongest_cards = client.get_strongest_cards()
+    heal_result = await client.heal_all(strongest_cards)
+    print(f"healed today: {heal_result[0].cooldowns_bought_today}")
     opponents = await client.get_opponents()
     battle_result = await client.do_battle(opponents.players[0].id, strongest_cards)
     print(battle_result.xp_added)
