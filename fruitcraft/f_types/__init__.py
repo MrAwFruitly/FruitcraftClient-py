@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from .utils import xor_encrypt
+from .cards import all_cards
 from typing import (
     Any, List, Dict, Optional
 )
@@ -8,6 +9,8 @@ import random
 
 class IntArray(str):
     pass
+
+def get_all_cards() -> dict: return all_cards
 
 LeagueWinnerRanges = Dict[str, int]
 
@@ -40,7 +43,6 @@ class Scaffold():
     def get_action(self) -> str:
         pass
     
-    
 
 class DScaffold(Scaffold, BaseModel):
     """
@@ -59,6 +61,7 @@ class APIResponse:
     code: Optional[int] = 0
     data: DScaffold = None
     arguments: Optional[Any] = None
+    the_err = None
     
     def __init__(self, j_value: dict) -> None:
         if not isinstance(j_value, dict):
@@ -67,6 +70,22 @@ class APIResponse:
         self.status = j_value.get('status', False)
         self.arguments = j_value.get('arguments', None)
 
+
+class CollectGoldRequest(DScaffold):
+    client: Optional[str] = ""
+    
+    def set_default_values(self):
+        if not self.client:
+            self.client = LoadRequestDefaults.DEFAULT_CLIENT_VALUE
+
+class CollectGoldResponse(DScaffold):
+    collected_gold: Optional[int] = 0
+    player_gold: Optional[int] = 0
+    gold_collection_allowed: Optional[bool] = False
+    gold_collection_allowed_at: Optional[int] = 0
+    gold_collection_extraction: Optional[int] = 0
+    last_gold_collected_at: Optional[int] = 0
+    needs_captcha: Optional[bool] = False
 
 class CardInfo(DScaffold):
     type: Optional[int] = 0
@@ -84,6 +103,13 @@ class AttackCardInfo(DScaffold):
     def set_as_used(self):
         self.internal_last_time_used = time.time()
 
+class EvolveCardRequest(DScaffold):
+    sacrifices: Optional[IntArray] = None
+
+class EvolveCardResponse(DScaffold):
+    gold: Optional[int] = 0
+    card: Optional[AttackCardInfo] = None
+    hero_max_rarity: Optional[int] = None
 
 class QuestResponse(DScaffold):
     code: Optional[int] = 0

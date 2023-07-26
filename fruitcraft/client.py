@@ -1,4 +1,6 @@
-from typing import Optional, List
+from typing import (
+    Optional, List, Union
+)
 import string
 import random
 import time
@@ -53,6 +55,10 @@ from .f_types import (
     TribeMembersResponse,
     TribeRankingsRequest,
     TribeRankingsResponse,
+    CollectGoldRequest,
+    CollectGoldResponse,
+    EvolveCardRequest,
+    EvolveCardResponse,
 )
 from .f_types.utils import (
     xor_decrypt,
@@ -107,6 +113,29 @@ class FruitCraftClient():
         if not self.logger:
             self.logger = logging.getLogger(__name__)
     
+    async def evolve_card(self, sacrifices: Union[CardsSelection, int]) -> EvolveCardResponse:
+        if isinstance(sacrifices, int):
+            sacrifices = new_int_array([sacrifices])
+        
+        return await self.evolve_card_with_options(EvolveCardRequest(
+            sacrifices=sacrifices,
+        ))
+    
+    async def evolve_card_with_options(self, opt: EvolveCardRequest) -> EvolveCardResponse:
+        api_response: APIResponse = await self.send_and_parse(
+            "cards/evolve", opt, EvolveCardResponse)
+        return api_response.data
+    
+    async def collect_gold(self) -> CollectGoldResponse:
+        return await self.collect_gold_with_options(CollectGoldRequest())
+    
+    async def collect_gold_with_options(self, opt: CollectGoldRequest) -> CollectGoldResponse:
+        opt.set_default_values()
+        
+        api_response: APIResponse = await self.send_and_parse(
+            "cards/collectgold", opt, CollectGoldResponse)
+        return api_response.data
+    
     async def get_player_info(self, player_id: int) -> GetPlayerInfoResponse:
         return await self.get_player_info_with_options(GetPlayerInfoRequest(player_id=player_id))
     
@@ -121,6 +150,11 @@ class FruitCraftClient():
     async def potionize_with_options(self, opt: PotionizeRequest) -> PotionizeResponse:
         api_response: APIResponse = await self.send_and_parse(
             "cards/potionize", opt, PotionizeResponse)
+        
+        player_potion = getattr(api_response.data, "player_potion", None)
+        if player_potion != None and isinstance(player_potion, int):
+            self.last_loaded_player.potion_number = player_potion
+        
         return api_response.data
     
     async def fill_potions(self, amount: int = 50) -> FillPotionResponse:
@@ -492,13 +526,14 @@ class FruitCraftClient():
     async def __load_player_with_options(self, opt: PlayerLoadRequest) -> PlayerLoadResponse:
         current_tries = 0
         while True:
-            api_response: APIResponse = await self.send_and_parse("player/load", opt, PlayerLoadResponse)
+            api_response: APIResponse = await self.send_and_parse(
+                "player/load", opt, PlayerLoadResponse, no_err_handling=True)
             if api_response.data != None and self.is_sim_err_code(getattr(api_response.data, "code", None)):
                 if current_tries > self._max_login_tries:
                     raise PlayerLoadException("Max login tries reached", api_response.data)
                 
                 sleep_amount: int = self._error_codes_to_sleep[getattr(api_response.data, "code")]
-                self.logger.warning("player/load: sleeping for %s seconds", sleep_amount)
+                self.logger.warning("player/load: sleeping for %i seconds", sleep_amount)
                 await asyncio.sleep(sleep_amount)
                 current_tries += 1
                 continue
@@ -554,7 +589,13 @@ class FruitCraftClient():
             response=response
         )
 
-    async def send_and_parse(self, req_path: str, req_data: DScaffold, return_type: type = None) -> APIResponse:
+    async def send_and_parse(
+        self,
+        req_path: str,
+        req_data: DScaffold,
+        return_type: type = None,
+        no_err_handling: bool = False
+    ) -> APIResponse:
         serialized_data = req_data.get_serialized(self._serialize_key)
         
         parser_method = getattr(req_data, 'parse_response', None)
@@ -572,6 +613,7 @@ class FruitCraftClient():
         if self.log_before_resp_parsing:
             print(f"Response: {respond_bytes}")
         
+        the_err = None
         respond_decrypted = xor_decrypt(respond_bytes)
         j_value = json.loads(respond_decrypted)
         if not j_value or not j_value['status']:
@@ -581,12 +623,15 @@ class FruitCraftClient():
                     error_code=j_value['data']['code'],
                     response=respond_bytes,
                 )
-                if isinstance(the_err, Exception):
+                
+                if not no_err_handling and isinstance(the_err, Exception):
                     raise the_err
-        
-            raise UnknownError(f"Unknown error occurred for {req_path}", respond_bytes)
+                    
+            if not no_err_handling:
+                raise UnknownError(f"Unknown error occurred for {req_path}", respond_bytes)
         
         api_response: APIResponse = APIResponse(j_value)
+        api_response.the_err = the_err
         response_data = j_value['data']
         if return_type:
             api_response.data = return_type(**response_data)

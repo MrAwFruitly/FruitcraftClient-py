@@ -1,6 +1,7 @@
 import pytest
 from fruitcraft import FruitCraftClient
 import asyncio
+import logging
 
 test_token: str = ''
 
@@ -95,8 +96,11 @@ async def test_fruit_do_battle():
 @pytest.mark.asyncio
 async def test_fruit_do_potion01():
     client = FruitCraftClient()
+    client.logger.setLevel(logging.DEBUG)
     load_response = await client.load_player(test_token)
     print(load_response.name)
     
-    fill_result = await client.fill_potions(50 - load_response.potion_number)
+    fill_result = await client.fill_potions(50)
     print(fill_result.added_potion)
+    potionize_result = await client.potionize(load_response.base_hero_id, 50)
+    print(potionize_result)
