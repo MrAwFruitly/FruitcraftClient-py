@@ -664,7 +664,10 @@ class FruitCraftClient():
         response.raise_for_status()
         return response.content
         
-
+    async def aclose(self):
+        try:
+            return await self.http_client.aclose()
+        except: pass
     
     @staticmethod
     def generate_passport() -> str:
