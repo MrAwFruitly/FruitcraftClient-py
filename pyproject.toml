@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "fruitcraft"
-version = "0.0.7"
+version = "0.0.8"
 description = "Full Python Wrapper for fruitcraft game API. By Mr.AW ."
 authors = ["Mr. AW <mrawfruitly@gmail.com>"]
 packages = [

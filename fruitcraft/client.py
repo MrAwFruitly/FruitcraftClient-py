@@ -157,10 +157,16 @@ class FruitCraftClient():
         
         return api_response.data
     
-    async def fill_potions(self, amount: int = 50) -> FillPotionResponse:
+    async def fill_potions(self, amount: int = None) -> FillPotionResponse:
         return await self.fill_potions_with_options(FillPotionRequest(amount=amount))
     
     async def fill_potions_with_options(self, opt: FillPotionRequest) -> FillPotionResponse:
+        if not opt.amount and self.last_loaded_player:
+            opt.amount = 50 - self.last_loaded_player.potion_number
+            
+            if not opt.amount:
+                return FillPotionResponse(potion_number=self.last_loaded_player.potion_number)
+        
         api_response: APIResponse = await self.send_and_parse(
             "player/fillpotion", opt, FillPotionResponse)
         
