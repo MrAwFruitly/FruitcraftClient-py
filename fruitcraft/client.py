@@ -542,6 +542,12 @@ class FruitCraftClient():
                 self.logger.warning("player/load: sleeping for %i seconds", sleep_amount)
                 await asyncio.sleep(sleep_amount)
                 current_tries += 1
+                
+                # this might actually fix it.
+                try:
+                    await self.player_comeback()
+                except: pass
+                 
                 continue
             
             break
