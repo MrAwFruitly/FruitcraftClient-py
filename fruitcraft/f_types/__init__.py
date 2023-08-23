@@ -616,6 +616,30 @@ class BattleRequest(DScaffold):
 
 class GetOpponentsResponse(DScaffold):
     players: Optional[List[OpponentInfo]] = []
+    
+    def get_strongest(self) -> OpponentInfo:
+        strongest_opp: OpponentInfo = None
+        for current in self.players:
+            if not strongest_opp:
+                strongest_opp = current
+                continue
+            
+            if current and current.def_power > strongest_opp.def_power:
+                strongest_opp = current
+        
+        return strongest_opp
+    
+    def get_weakest(self) -> OpponentInfo:
+        weakest_opp: OpponentInfo = None
+        for current in self.players:
+            if not weakest_opp:
+                weakest_opp = current
+                continue
+            
+            if current and current.def_power < weakest_opp.def_power:
+                weakest_opp = current
+        
+        return weakest_opp
 
 
 class GetOpponentsRequest(DScaffold):
